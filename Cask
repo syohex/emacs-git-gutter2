@@ -1,7 +1,7 @@
 (source gnu)
 (source melpa)
 
-(package-file "git-gutter.el")
+(package-file "git-gutter2.el")
 
 (development
  (depends-on "ert"))
