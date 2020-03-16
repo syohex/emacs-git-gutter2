@@ -66,10 +66,6 @@ Move to end of current hunk
 
 Mark current hunk.
 
-#### `git-gutter2-set-start-revision`
-
-Set start revision where got diff(`git diff`) from.
-
 #### `git-gutter2-popup-hunk`
 
 Popup current diff hunk(alias `git-gutter2-popup-diff`)
@@ -90,10 +86,6 @@ Revert current hunk
 
 Show changes from last commit or Update change information.
 Please execute this command if diff information is not be updated.
-
-#### `git-gutter2-update-all-windows`
-
-Update git-gutter2 information of buffers in all visible window.
 
 
 ## Sample Configuration
