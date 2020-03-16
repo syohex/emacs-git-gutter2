@@ -170,7 +170,7 @@ gutter information of other windows."
 (defvar git-gutter2-real-this-command nil)
 (defvar git-gutter2-linum-enabled nil)
 (defvar git-gutter2-linum-prev-window-margin nil)
-(defvar git-gutter2-vcs-type nil)
+(defvar git-gutter2--in-repository nil)
 (defvar git-gutter2-start-revision nil)
 (defvar git-gutter2-revision-history nil)
 (defvar git-gutter2-update-timer nil)
@@ -193,27 +193,19 @@ gutter information of other windows."
 (defsubst git-gutter2-execute-command (cmd output &rest args)
   (apply #'process-file cmd nil output nil args))
 
-(defun git-gutter2-in-git-repository-p ()
-  (when (executable-find "git")
-    (with-temp-buffer
-      (when (zerop (git-gutter2-execute-command "git" t "rev-parse" "--is-inside-work-tree"))
-        (goto-char (point-min))
-        (looking-at-p "true")))))
-
 (defun git-gutter2-in-repository-common-p (cmd check-subcmd repodir)
   (and (executable-find cmd)
        (locate-dominating-file default-directory repodir)
        (zerop (apply #'git-gutter2-execute-command cmd nil check-subcmd))
        (not (string-match-p (regexp-quote (concat "/" repodir "/")) default-directory))))
 
-(defun git-gutter2-vcs-check-function (vcs)
-  (cl-case vcs
-    (git (git-gutter2-in-git-repository-p))))
-
 (defun git-gutter2-in-repository-p ()
-  (cl-loop for vcs in git-gutter2-handled-backends
-           when (git-gutter2-vcs-check-function vcs)
-           return (setq-local git-gutter2-vcs-type vcs)))
+  (let ((in-repository-p
+         (with-temp-buffer
+           (when (zerop (git-gutter2-execute-command "git" t "rev-parse" "--is-inside-work-tree"))
+             (goto-char (point-min))
+             (looking-at-p "true")))))
+    (setq-local git-gutter2--in-repository in-repository-p)))
 
 (defsubst git-gutter2-changes-to-number (str)
   (if (string= str "")
@@ -282,8 +274,7 @@ gutter information of other windows."
            arg)))
 
 (defun git-gutter2-start-diff-process1 (file proc-buf)
-  (cl-case git-gutter2-vcs-type
-    (git (git-gutter2-start-git-diff-process file proc-buf))))
+  (git-gutter2-start-git-diff-process file proc-buf))
 
 (defun git-gutter2-start-diff-process (curfile proc-buf)
   (git-gutter2-set-window-margin (git-gutter2-window-margin))
@@ -808,7 +799,7 @@ gutter information of other windows."
 (defun git-gutter2 ()
   "Show diff information in gutter"
   (interactive)
-  (when (or git-gutter2-vcs-type (git-gutter2-in-repository-p))
+  (when (or git-gutter2--in-repository (git-gutter2-in-repository-p))
     (let* ((file (git-gutter2-base-file))
            (proc-buf (git-gutter2-diff-process-buffer file)))
       (when (and (called-interactively-p 'interactive) (get-buffer proc-buf))
@@ -855,10 +846,7 @@ gutter information of other windows."
 (make-obsolete 'git-gutter2-toggle #'git-gutter2-mode "0.86")
 
 (defun git-gutter2-revision-valid-p (revision)
-  (zerop (cl-case git-gutter2-vcs-type
-           (git (git-gutter2-execute-command "git" nil
-                                            "rev-parse" "--quiet" "--verify"
-                                            revision)))))
+  (zerop (git-gutter2-execute-command "git" nil "rev-parse" "--quiet" "--verify" revision)))
 
 (defun git-gutter2-set-start-revision (start-rev)
   "Set start revision. If `start-rev' is nil or empty string then reset
