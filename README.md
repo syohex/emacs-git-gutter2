@@ -214,61 +214,6 @@ to `non-nil`.
 
 Default is `nil`.
 
-### Show signs at gutter by visual lines
-
-Emacs folds long line if `truncate-lines` is `nil`. If `git-gutter2-visual-line` is
-non-nil, `git-gutter2` puts sign by visual lines.
-
-```lisp
-(custom-set-variables
- '(git-gutter2-visual-line t))
-```
-
-Default bahavior is that signs are put by logical lines.
-value of `git-gutter2-visual-line` is `nil`.
-
-### Show Unchanged Information
-
-![Screenshot of highlighting unchanged lines](image/git-gutter2-unchanged.png)
-
-`git-gutter2.el` can view unchanged information by setting `git-gutter2-unchanged-sign`.
-Like following.
-
-```lisp
-(custom-set-variables
- '(git-gutter2-unchanged-sign " "))
-(set-face-background 'git-gutter2-unchanged "yellow")
-```
-
-Default value of `git-gutter2-unchanged-sign` is `nil`.
-
-### Show a separator column
-
-![Screenshot of showing separator between buffer and gutter](image/git-gutter2-separator.png)
-
-`git-gutter2.el` can display an additional separator character at the right of the changed
-signs. This is mostly useful when running emacs in a console.
-
-```lisp
-(custom-set-variables
- '(git-gutter2-separator-sign "|"))
-(set-face-foreground 'git-gutter2-separator "yellow")
-```
-
-Default value of `git-gutter2-separator-sign` is `nil`.
-
-Please set `git-gutter2-always-show-separator` to non-nil, if you want to show
-separator always.
-
-### Hide gutter if there are no changes
-
-Hide gutter when there are no changes if `git-gutter2-hide-gutter` is non-nil.
-(Default is nil)
-
-```lisp
-(custom-set-variables
- '(git-gutter2-hide-gutter t))
-```
 
 ### Pass option to 'git diff' command
 
