@@ -1,8 +1,8 @@
 ;;; test-git-gutter.el --- Test for git-gutter.el
 
-;; Copyright (C) 2016 by Syohei YOSHIDA
+;; Copyright (C) 2020 by Shohei YOSHIDA
 
-;; Author: Syohei YOSHIDA <syohex@gmail.com>
+;; Author: Shohei YOSHIDA <syohex@gmail.com>
 
 ;; This program is free software; you can redistribute it and/or modify
 ;; it under the terms of the GNU General Public License as published by
@@ -174,12 +174,5 @@ bar
     (should (= (nth 1 got) 1))
     (should (= (nth 2 got) 200))
     (should (= (nth 3 got) 1))))
-
-(ert-deftest git-gutter-show-backends ()
-  "Show only handled backends."
-
-  (let ((git-gutter2-handled-backends '(git))
-        (expected "Git"))
-    (should (string= (git-gutter2-show-backends) expected))))
 
 ;;; test-git-gutter2.el end here
