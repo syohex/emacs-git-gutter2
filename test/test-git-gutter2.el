@@ -160,18 +160,6 @@ bar
            (got (git-gutter2-git-diff-arguments file)))
       (should (equal got '("-a" "-b" "-c" "HEAD" "git-gutter2.el"))))))
 
-(ert-deftest git-gutter-hg-diff-arguments ()
-  "Command line options of `hg diff'"
-
-  (let ((git-gutter2-mercurial-diff-option "-a -b -c")
-        (file "git-gutter2.el"))
-    (let ((got (git-gutter2-hg-diff-arguments file)))
-      (should (equal got '("-a" "-b" "-c" "git-gutter2.el"))))
-
-    (let* ((git-gutter2-start-revision "30000")
-           (got (git-gutter2-hg-diff-arguments file)))
-      (should (equal got '("-a" "-b" "-c" "-r" "30000" "git-gutter2.el"))))))
-
 (ert-deftest git-gutter-read-header ()
   "Read header of diff hunk"
 
@@ -192,10 +180,6 @@ bar
 
   (let ((git-gutter2-handled-backends '(git))
         (expected "Git"))
-    (should (string= (git-gutter2-show-backends) expected)))
-
-  (let ((git-gutter2-handled-backends '(git hg))
-        (expected "Git/Hg"))
     (should (string= (git-gutter2-show-backends) expected))))
 
 ;;; test-git-gutter2.el end here
