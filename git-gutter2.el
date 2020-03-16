@@ -51,10 +51,6 @@ character for signs of changes"
   "Option of 'hg diff'"
   :type 'string)
 
-(defcustom git-gutter2-bazaar-diff-option ""
-  "Option of 'bzr diff'"
-  :type 'string)
-
 (defcustom git-gutter2-update-commands
   '(ido-switch-buffer helm-buffers-list)
   "Each command of this list is executed, gutter information is updated."
@@ -141,7 +137,7 @@ gutter information of other windows."
 
 (defcustom git-gutter2-handled-backends '(git)
   "List of version control backends for which `git-gutter.el` will be used.
-`git', `svn', `hg', and `bzr' are supported."
+`git', `svn', and `hg' are supported."
   :type '(repeat symbol))
 
 (defvar git-gutter2-view-diff-function #'git-gutter2-view-diff-infos
@@ -222,8 +218,7 @@ gutter information of other windows."
   (cl-case vcs
     (git (git-gutter2-in-git-repository-p))
     (svn (git-gutter2-in-repository-common-p "svn" '("info") ".svn"))
-    (hg (git-gutter2-in-repository-common-p "hg" '("root") ".hg"))
-    (bzr (git-gutter2-in-repository-common-p "bzr" '("root") ".bzr"))))
+    (hg (git-gutter2-in-repository-common-p "hg" '("root") ".hg"))))
 
 (defun git-gutter2-in-repository-p ()
   (cl-loop for vcs in git-gutter2-handled-backends
@@ -324,26 +319,11 @@ gutter information of other windows."
         (process-environment (cons "HGPLAIN=1" process-environment)))
     (apply #'start-file-process "git-gutter" proc-buf "hg" "diff" "-U0" args)))
 
-(defun git-gutter2-bzr-diff-arguments (file)
-  (let (args)
-    (unless (string= git-gutter2-bazaar-diff-option "")
-      (setq args (nreverse (split-string git-gutter2-bazaar-diff-option))))
-    (when (git-gutter2-revision-set-p)
-      (push "-r" args)
-      (push git-gutter2-start-revision args))
-    (nreverse (cons file args))))
-
-(defsubst git-gutter2-start-bzr-diff-process (file proc-buf)
-  (let ((args (git-gutter2-bzr-diff-arguments file)))
-    (apply #'start-file-process "git-gutter" proc-buf
-           "bzr" "diff" "--context=0" args)))
-
 (defun git-gutter2-start-diff-process1 (file proc-buf)
   (cl-case git-gutter2-vcs-type
     (git (git-gutter2-start-git-diff-process file proc-buf))
     (svn (git-gutter2-start-svn-diff-process file proc-buf))
-    (hg (git-gutter2-start-hg-diff-process file proc-buf))
-    (bzr (git-gutter2-start-bzr-diff-process file proc-buf))))
+    (hg (git-gutter2-start-hg-diff-process file proc-buf))))
 
 (defun git-gutter2-start-diff-process (curfile proc-buf)
   (git-gutter2-set-window-margin (git-gutter2-window-margin))
@@ -921,9 +901,7 @@ gutter information of other windows."
                                             revision))
            (svn (git-gutter2-execute-command "svn" nil "info" "-r" revision
                                             (file-relative-name (buffer-file-name))))
-           (hg (git-gutter2-execute-command "hg" nil "id" "-r" revision))
-           (bzr (git-gutter2-execute-command "bzr" nil
-                                            "revno" "-r" revision)))))
+           (hg (git-gutter2-execute-command "hg" nil "id" "-r" revision)))))
 
 (defun git-gutter2-set-start-revision (start-rev)
   "Set start revision. If `start-rev' is nil or empty string then reset

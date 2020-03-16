@@ -68,7 +68,7 @@ Mark current hunk.
 
 #### `git-gutter2-set-start-revision`
 
-Set start revision where got diff(`git diff`, `hg diff` or `bzr diff`) from.
+Set start revision where got diff(`git diff`, `hg diff`) from.
 
 #### `git-gutter2-popup-hunk`
 
