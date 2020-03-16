@@ -50,10 +50,10 @@
   (when (file-directory-p ".git") ;; #36
     (let ((buf (find-file-noselect ".git/config")))
       (with-current-buffer buf
-        (should-not (git-gutter2-in-git-repository-p)))))
+        (should-not (git-gutter2-in-repository-p)))))
 
   (let ((default-directory (file-name-directory (locate-library "git-gutter2"))))
-    (should (git-gutter2-in-git-repository-p))))
+    (should (git-gutter2-in-repository-p))))
 
 (ert-deftest git-gutter2 ()
   "Should return nil if buffer does not related with file or file is not existed"
