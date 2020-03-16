@@ -63,14 +63,6 @@ gutter information of other windows."
   :type '(list (hook :tag "HookPoint")
                (repeat :inline t (hook :tag "HookPoint"))))
 
-(defcustom git-gutter2-always-show-separator nil
-  "Show separator even if there are no changes."
-  :type 'boolean)
-
-(defcustom git-gutter2-separator-sign nil
-  "Separator sign"
-  :type 'string)
-
 (defcustom git-gutter2-modified-sign "="
   "Modified sign"
   :type 'string)
@@ -83,14 +75,6 @@ gutter information of other windows."
   "Deleted sign"
   :type 'string)
 
-(defcustom git-gutter2-unchanged-sign nil
-  "Unchanged sign"
-  :type 'string)
-
-(defcustom git-gutter2-hide-gutter nil
-  "Hide gutter if there are no changes"
-  :type 'boolean)
-
 (defcustom git-gutter2-lighter " GitGutter"
   "Minor mode lighter in mode-line"
   :type 'string)
@@ -98,14 +82,6 @@ gutter information of other windows."
 (defcustom git-gutter2-verbosity 0
   "Log/message level. 4 means all, 0 nothing."
   :type 'integer)
-
-(defcustom git-gutter2-visual-line nil
-  "Show sign at gutter by visual line."
-  :type 'boolean)
-
-(defface git-gutter2-separator
-  '((t (:foreground "cyan" :weight bold :inherit default)))
-  "Face of separator")
 
 (defface git-gutter2-modified
   '((t (:foreground "magenta" :weight bold :inherit default)))
@@ -118,10 +94,6 @@ gutter information of other windows."
 (defface git-gutter2-deleted
   '((t (:foreground "red" :weight bold)))
   "Face of deleted")
-
-(defface git-gutter2-unchanged
-  '((t (:background "yellow")))
-  "Face of unchanged")
 
 (defcustom git-gutter2-disabled-modes nil
   "A list of modes which `global-git-gutter2-mode' should be disabled."
@@ -294,13 +266,8 @@ gutter information of other windows."
                (setq git-gutter2-enabled t)))
            (kill-buffer proc-buf)))))))
 
-(defsubst git-gutter2-gutter-sperator ()
-  (when git-gutter2-separator-sign
-    (propertize git-gutter2-separator-sign 'face 'git-gutter2-separator)))
-
 (defun git-gutter2-before-string (sign)
-  (let ((gutter-sep (concat sign (git-gutter2-gutter-sperator))))
-    (propertize " " 'display `((margin left-margin) ,gutter-sep))))
+  (propertize " " 'display `((margin left-margin) ,sign)))
 
 (defun git-gutter2-propertized-sign (type)
   (let (sign face)
@@ -332,31 +299,7 @@ gutter information of other windows."
   (let ((signs (list git-gutter2-modified-sign
                      git-gutter2-added-sign
                      git-gutter2-deleted-sign)))
-    (when git-gutter2-unchanged-sign
-      (push git-gutter2-unchanged-sign signs))
-    (+ (apply #'max (mapcar 'git-gutter2-sign-width signs))
-       (git-gutter2-sign-width git-gutter2-separator-sign))))
-
-(defun git-gutter2-next-visual-line (arg)
-  (let ((line-move-visual t))
-    (with-no-warnings
-      (next-line arg))))
-
-(defun git-gutter2-view-for-unchanged ()
-  (save-excursion
-    (let ((sign (if git-gutter2-unchanged-sign
-                    (propertize git-gutter2-unchanged-sign
-                                'face 'git-gutter2-unchanged)
-                  " "))
-          (move-fn (if git-gutter2-visual-line
-                       #'git-gutter2-next-visual-line
-                     #'forward-line))
-          points)
-      (goto-char (point-min))
-      (while (not (eobp))
-        (push (point) points)
-        (funcall move-fn 1))
-      (git-gutter2-put-signs sign points))))
+    (apply #'max (mapcar #'git-gutter2-sign-width signs))))
 
 (defsubst git-gutter2-check-file-and-directory ()
   (and (git-gutter2-base-file)
@@ -438,24 +381,16 @@ gutter information of other windows."
 (define-global-minor-mode global-git-gutter2-mode git-gutter2-mode git-gutter2--turn-on)
 
 (defsubst git-gutter2-show-gutter-p (diffinfos)
-  (if git-gutter2-hide-gutter
-      (or diffinfos git-gutter2-unchanged-sign)
-    (or global-git-gutter2-mode git-gutter2-unchanged-sign diffinfos)))
+  (or global-git-gutter2-mode diffinfos))
 
 (defun git-gutter2-show-gutter (diffinfos)
   (when (git-gutter2-show-gutter-p diffinfos)
     (git-gutter2-set-window-margin (git-gutter2-window-margin))))
 
 (defun git-gutter2-view-set-overlays (diffinfos)
-  (when (or git-gutter2-unchanged-sign git-gutter2-separator-sign)
-    (git-gutter2-view-for-unchanged))
   (save-excursion
     (goto-char (point-min))
     (cl-loop with curline = 1
-             with move-fn = (if git-gutter2-visual-line
-                                #'git-gutter2-next-visual-line
-                              #'forward-line)
-
              for info in diffinfos
              for start-line = (git-gutter2-hunk-start-line info)
              for end-line = (git-gutter2-hunk-end-line info)
@@ -471,7 +406,7 @@ gutter information of other windows."
                  ((modified added)
                   (while (and (<= (point) bound) (not (eobp)))
                     (push (point) points)
-                    (funcall move-fn 1))
+                    (forward-line 1))
                   (git-gutter2-put-signs sign points))
                  (deleted
                   (git-gutter2-put-signs sign (list (point)))
@@ -479,15 +414,12 @@ gutter information of other windows."
                (setq curline (1+ end-line))))))
 
 (defun git-gutter2-view-diff-infos (diffinfos)
-  (when (or diffinfos git-gutter2-always-show-separator)
+  (when diffinfos
     (git-gutter2-view-set-overlays diffinfos))
   (git-gutter2-show-gutter diffinfos))
 
-(defsubst git-gutter2-reset-window-margin-p ()
-  (or git-gutter2-hide-gutter (not global-git-gutter2-mode)))
-
 (defun git-gutter2-clear-diff-infos ()
-  (when (git-gutter2-reset-window-margin-p)
+  (unless global-git-gutter2-mode
     (git-gutter2-set-window-margin 0))
   (remove-overlays (point-min) (point-max) 'git-gutter2 t))
 
@@ -747,10 +679,6 @@ gutter information of other windows."
 
 (defadvice vc-revert (after git-gutter2-vc-revert activate)
   (when git-gutter2-mode
-    (run-with-idle-timer 0.1 nil 'git-gutter)))
-
-(defadvice toggle-truncate-lines (after git-gutter2-toggle-truncate-lines activate)
-  (when (and git-gutter2-mode git-gutter2-visual-line)
     (run-with-idle-timer 0.1 nil 'git-gutter)))
 
 ;; `quit-window' and `switch-to-buffer' are called from other
