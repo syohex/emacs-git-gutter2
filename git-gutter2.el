@@ -1,8 +1,8 @@
 ;;; git-gutter2.el --- Port of Sublime Text plugin GitGutter -*- lexical-binding: t; -*-
 
-;; Copyright (C) 2020 by Syohei YOSHIDA
+;; Copyright (C) 2020 by Shohei YOSHIDA
 
-;; Author: Syohei YOSHIDA <syohex@gmail.com>
+;; Author: Shohei YOSHIDA <syohex@gmail.com>
 ;; URL: https://github.com/syohex/emacs-git-gutter2
 ;; Version: 0.90
 ;; Package-Requires: ((emacs "26.1"))
@@ -168,8 +168,6 @@ gutter information of other windows."
 (defvar git-gutter2-diffinfos nil)
 (defvar git-gutter2-has-indirect-buffers nil)
 (defvar git-gutter2-real-this-command nil)
-(defvar git-gutter2-linum-enabled nil)
-(defvar git-gutter2-linum-prev-window-margin nil)
 (defvar git-gutter2--in-repository nil)
 (defvar git-gutter2-start-revision nil)
 (defvar git-gutter2-revision-history nil)
@@ -251,7 +249,7 @@ gutter information of other windows."
   (or git-gutter2-window-width (git-gutter2-longest-sign-width)))
 
 (defun git-gutter2-set-window-margin (width)
-  (when (and (not git-gutter2-linum-enabled) (>= width 0))
+  (when (>= width 0)
     (let ((curwin (get-buffer-window)))
       (set-window-margins curwin width (cdr (window-margins curwin))))))
 
@@ -319,28 +317,12 @@ gutter information of other windows."
                   `(:inherit ,face))))
     (propertize sign 'face face)))
 
-(defsubst git-gutter2-linum-get-overlay (pos)
-  (cl-loop for ov in (overlays-in pos pos)
-           when (overlay-get ov 'linum-str)
-           return ov))
-
-(defun git-gutter2-put-signs-linum (sign points)
-  (dolist (pos points)
-    (git-gutter2-awhen (git-gutter2-linum-get-overlay pos)
-      (overlay-put it 'before-string
-                   (propertize " "
-                               'display
-                               `((margin left-margin)
-                                 ,(concat sign (overlay-get it 'linum-str))))))))
-
 (defun git-gutter2-put-signs (sign points)
-  (if git-gutter2-linum-enabled
-      (git-gutter2-put-signs-linum sign points)
-    (dolist (pos points)
-      (let ((ov (make-overlay pos pos))
-            (gutter-sign (git-gutter2-before-string sign)))
-        (overlay-put ov 'before-string gutter-sign)
-        (overlay-put ov 'git-gutter2 t)))))
+  (dolist (pos points)
+    (let ((ov (make-overlay pos pos))
+          (gutter-sign (git-gutter2-before-string sign)))
+      (overlay-put ov 'before-string gutter-sign)
+      (overlay-put ov 'git-gutter2 t))))
 
 (defsubst git-gutter2-sign-width (sign)
   (cl-loop for s across sign
@@ -402,8 +384,7 @@ gutter information of other windows."
          (git-gutter2))
         ((memq git-gutter2-real-this-command git-gutter2-update-windows-commands)
          (git-gutter2)
-         (unless global-linum-mode
-           (git-gutter2-update-other-window-buffers (selected-window) (current-buffer))))))
+         (git-gutter2-update-other-window-buffers (selected-window) (current-buffer)))))
 
 (defsubst git-gutter2-diff-process-buffer (curfile)
   (concat " *git-gutter-" curfile "-*"))
@@ -412,54 +393,6 @@ gutter information of other windows."
   (let ((buf (git-gutter2-diff-process-buffer (git-gutter2-base-file))))
     (git-gutter2-awhen (get-buffer buf)
       (kill-buffer it))))
-
-(defsubst git-gutter2-linum-padding ()
-  (cl-loop repeat (git-gutter2-window-margin)
-           collect " " into paddings
-           finally return (apply #'concat paddings)))
-
-(defun git-gutter2-linum-prepend-spaces ()
-  (save-excursion
-    (goto-char (point-min))
-    (let ((padding (git-gutter2-linum-padding))
-          points)
-      (while (not (eobp))
-        (push (point) points)
-        (forward-line 1))
-      (git-gutter2-put-signs-linum padding points))))
-
-(defun git-gutter2-linum-update (diffinfos)
-  (let ((linum-width (car (window-margins))))
-    (when linum-width
-      (git-gutter2-linum-prepend-spaces)
-      (git-gutter2-view-set-overlays diffinfos)
-      (let ((curwin (get-buffer-window))
-            (margin (+ linum-width (git-gutter2-window-margin))))
-        (setq git-gutter2-linum-prev-window-margin margin)
-        (set-window-margins curwin margin (cdr (window-margins curwin)))))))
-
-(defun git-gutter2-linum-init ()
-  (setq-local git-gutter2-linum-enabled t)
-  (make-local-variable 'git-gutter2-linum-prev-window-margin))
-
-;;;###autoload
-(defun git-gutter2-linum-setup ()
-  "Setup for linum-mode."
-  (setq git-gutter2-init-function 'git-gutter2-linum-init
-        git-gutter2-view-diff-function nil)
-  (defadvice linum-update-window (after git-gutter2-linum-update-window activate)
-    (when git-gutter2-display-p
-      (if (and git-gutter2-mode git-gutter2-diffinfos)
-          (git-gutter2-linum-update git-gutter2-diffinfos)
-        (let ((curwin (get-buffer-window))
-              (margin (or git-gutter2-linum-prev-window-margin
-                          (car (window-margins)))))
-          (set-window-margins curwin margin (cdr (window-margins curwin))))))))
-
-(defun git-gutter2-show-backends ()
-  (mapconcat (lambda (backend)
-               (capitalize (symbol-name backend)))
-             git-gutter2-handled-backends "/"))
 
 ;;;###autoload
 (define-minor-mode git-gutter2-mode
@@ -487,7 +420,7 @@ gutter information of other windows."
               (setq git-gutter2-update-timer
                     (run-with-idle-timer git-gutter2-update-interval t 'git-gutter2-live-update))))
         (when (> git-gutter2-verbosity 2)
-          (message "Here is not %s work tree" (git-gutter2-show-backends)))
+          (message "Here is not git work tree"))
         (git-gutter2-mode -1))
     (remove-hook 'kill-buffer-hook 'git-gutter2-kill-buffer-hook t)
     (remove-hook 'pre-command-hook 'git-gutter2-pre-command-hook)
@@ -952,10 +885,6 @@ start revision."
               (git-gutter2-start-live-update file original now))
           (delete-file now)
           (delete-file original))))))
-
-;; for linum-user
-(when (and global-linum-mode (not (boundp 'git-gutter-fringe)))
-  (git-gutter2-linum-setup))
 
 (defun git-gutter2-all-hunks ()
   "Cound unstaged hunks in all buffers"

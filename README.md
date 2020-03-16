@@ -91,10 +91,6 @@ Revert current hunk
 Show changes from last commit or Update change information.
 Please execute this command if diff information is not be updated.
 
-#### `git-gutter2-linum-setup`
-
-Setup for working with `linum-mode`.
-
 #### `git-gutter2-update-all-windows`
 
 Update git-gutter2 information of buffers in all visible window.
@@ -107,9 +103,6 @@ Update git-gutter2 information of buffers in all visible window.
 
 ;; If you enable global minor mode
 (global-git-gutter2-mode t)
-
-;; If you would like to use git-gutter2.el and linum-mode
-(git-gutter2-linum-setup)
 
 ;; If you enable git-gutter2-mode for some modes
 (add-hook 'ruby-mode-hook 'git-gutter2-mode)
