@@ -43,10 +43,6 @@ character for signs of changes"
   "Option of 'git diff'"
   :type 'string)
 
-(defcustom git-gutter2-subversion-diff-option ""
-  "Option of 'svn diff'"
-  :type 'string)
-
 (defcustom git-gutter2-mercurial-diff-option ""
   "Option of 'hg diff'"
   :type 'string)
@@ -137,7 +133,7 @@ gutter information of other windows."
 
 (defcustom git-gutter2-handled-backends '(git)
   "List of version control backends for which `git-gutter.el` will be used.
-`git', `svn', and `hg' are supported."
+`git' and `hg' are supported."
   :type '(repeat symbol))
 
 (defvar git-gutter2-view-diff-function #'git-gutter2-view-diff-infos
@@ -217,7 +213,6 @@ gutter information of other windows."
 (defun git-gutter2-vcs-check-function (vcs)
   (cl-case vcs
     (git (git-gutter2-in-git-repository-p))
-    (svn (git-gutter2-in-repository-common-p "svn" '("info") ".svn"))
     (hg (git-gutter2-in-repository-common-p "hg" '("root") ".hg"))))
 
 (defun git-gutter2-in-repository-p ()
@@ -291,20 +286,6 @@ gutter information of other windows."
            "diff" "--no-color" "--no-ext-diff" "--relative" "-U0"
            arg)))
 
-(defun git-gutter2-svn-diff-arguments (file)
-  (let (args)
-    (unless (string= git-gutter2-subversion-diff-option "")
-      (setq args (nreverse (split-string git-gutter2-subversion-diff-option))))
-    (when (git-gutter2-revision-set-p)
-      (push "-r" args)
-      (push git-gutter2-start-revision args))
-    (nreverse (cons file args))))
-
-(defsubst git-gutter2-start-svn-diff-process (file proc-buf)
-  (let ((args (git-gutter2-svn-diff-arguments file)))
-    (apply #'start-file-process "git-gutter" proc-buf "svn" "diff" "--diff-cmd"
-           "diff" "-x" "-U0" args)))
-
 (defun git-gutter2-hg-diff-arguments (file)
   (let (args)
     (unless (string= git-gutter2-mercurial-diff-option "")
@@ -322,7 +303,6 @@ gutter information of other windows."
 (defun git-gutter2-start-diff-process1 (file proc-buf)
   (cl-case git-gutter2-vcs-type
     (git (git-gutter2-start-git-diff-process file proc-buf))
-    (svn (git-gutter2-start-svn-diff-process file proc-buf))
     (hg (git-gutter2-start-hg-diff-process file proc-buf))))
 
 (defun git-gutter2-start-diff-process (curfile proc-buf)
@@ -899,8 +879,6 @@ gutter information of other windows."
            (git (git-gutter2-execute-command "git" nil
                                             "rev-parse" "--quiet" "--verify"
                                             revision))
-           (svn (git-gutter2-execute-command "svn" nil "info" "-r" revision
-                                            (file-relative-name (buffer-file-name))))
            (hg (git-gutter2-execute-command "hg" nil "id" "-r" revision)))))
 
 (defun git-gutter2-set-start-revision (start-rev)
