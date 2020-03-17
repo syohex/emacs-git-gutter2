@@ -82,9 +82,9 @@ This command is supported only for `git`.
 
 Revert current hunk
 
-#### `git-gutter2`
+#### `git-gutter2-update`
 
-Show changes from last commit or Update change information.
+Show/update changes from last commit or Update change information.
 Please execute this command if diff information is not be updated.
 
 
@@ -99,7 +99,7 @@ Please execute this command if diff information is not be updated.
 ;; If you enable git-gutter2-mode for some modes
 (add-hook 'ruby-mode-hook 'git-gutter2-mode)
 
-(global-set-key (kbd "C-x C-g") 'git-gutter2)
+(global-set-key (kbd "C-x C-g") 'git-gutter2-update)
 (global-set-key (kbd "C-x v =") 'git-gutter2-popup-hunk)
 
 ;; Jump to next/previous hunk

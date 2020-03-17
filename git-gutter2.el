@@ -290,9 +290,9 @@ gutter information of other windows."
 
 (defun git-gutter2--post-command-hook ()
   (cond ((memq git-gutter2--real-this-command git-gutter2-update-commands)
-         (git-gutter2))
+         (git-gutter2-update))
         ((memq git-gutter2--real-this-command git-gutter2-update-windows-commands)
-         (git-gutter2)
+         (git-gutter2-update)
          (git-gutter2--update-other-window-buffers (selected-window) (current-buffer)))))
 
 (defsubst git-gutter2--diff-process-buffer (curfile)
@@ -319,8 +319,8 @@ gutter information of other windows."
             (add-hook 'pre-command-hook #'git-gutter2--pre-command-hook)
             (add-hook 'post-command-hook #'git-gutter2--post-command-hook nil t)
             (dolist (hook git-gutter2-update-hooks)
-              (add-hook hook 'git-gutter2 nil t))
-            (git-gutter2)
+              (add-hook hook #'git-gutter2-update nil t))
+            (git-gutter2-update)
             (when (and (not git-gutter2--update-timer) (> git-gutter2-update-interval 0))
               (setq git-gutter2--update-timer
                     (run-with-idle-timer git-gutter2-update-interval t #'git-gutter2--live-update))))
@@ -331,7 +331,7 @@ gutter information of other windows."
     (remove-hook 'pre-command-hook #'git-gutter2--pre-command-hook)
     (remove-hook 'post-command-hook #'git-gutter2--post-command-hook t)
     (dolist (hook git-gutter2-update-hooks)
-      (remove-hook hook 'git-gutter2 t))
+      (remove-hook hook #'git-gutter2-update t))
     (git-gutter2--clear-gutter)))
 
 (defun git-gutter2--turn-on ()
@@ -527,7 +527,7 @@ gutter information of other windows."
 (defun git-gutter2-stage-hunk ()
   "Stage this hunk like 'git add -p'."
   (interactive)
-  (git-gutter2--query-action "Stage" #'git-gutter2--do-stage-hunk #'git-gutter2))
+  (git-gutter2--query-action "Stage" #'git-gutter2--do-stage-hunk #'git-gutter2-update))
 
 (defsubst git-gutter2--line-point (line)
   (save-excursion
@@ -599,7 +599,7 @@ gutter information of other windows."
       (forward-line lines))))
 
 ;;;###autoload
-(defun git-gutter2 ()
+(defun git-gutter2-update ()
   "Show diff information in gutter"
   (interactive)
   (when (or git-gutter2--in-repository (git-gutter2--in-repository-p))
@@ -619,11 +619,11 @@ gutter information of other windows."
 ;; commands. So we should use `defadvice' instead of `post-command-hook'.
 (defadvice quit-window (after git-gutter2-quit-window activate)
   (when git-gutter2-mode
-    (git-gutter2)))
+    (git-gutter2-update)))
 
 (defadvice switch-to-buffer (after git-gutter2-switch-to-buffer activate)
   (when git-gutter2-mode
-    (git-gutter2)))
+    (git-gutter2-update)))
 
 (defun git-gutter2-start-update-timer ()
   (interactive)

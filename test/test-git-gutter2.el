@@ -55,13 +55,13 @@
   (let ((default-directory (file-name-directory (locate-library "git-gutter2"))))
     (should (git-gutter2--in-repository-p))))
 
-(ert-deftest git-gutter2 ()
+(ert-deftest git-gutter2-update ()
   "Should return nil if buffer does not related with file or file is not existed"
   (with-current-buffer (get-buffer-create "*not-related-file*")
-    (should-not (git-gutter2)))
+    (should-not (git-gutter2-update)))
   (let ((buf (find-file-noselect "not-found")))
     (with-current-buffer buf
-      (should-not (git-gutter2)))))
+      (should-not (git-gutter2-update)))))
 
 (ert-deftest git-gutter2--collect-deleted-line ()
   "Should return lines which start with '-'"
