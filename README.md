@@ -87,6 +87,10 @@ Revert current hunk
 Show/update changes from last commit or Update change information.
 Please execute this command if diff information is not be updated.
 
+#### `git-gutter2-update-all-windows`
+
+Update git-gutter2 information of buffers in all visible window.
+
 
 ## Sample Configuration
 
@@ -250,11 +254,11 @@ code you changed etc. To display them in mode-line is also useful.
 
 #### `(git-gutter2-buffer-hunks)`
 
-Cound unstaged hunks in current buffer.
+Count unstaged hunks in current buffer.
 
 #### `(git-gutter2-all-hunks)`
 
-Cound unstaged hunks in all buffers
+Count unstaged hunks in all buffers
 
 #### `(git-gutter2-statistic)`
 
