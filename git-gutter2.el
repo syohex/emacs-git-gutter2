@@ -75,7 +75,7 @@ gutter information of other windows."
   "Deleted sign"
   :type 'string)
 
-(defcustom git-gutter2-lighter " GitGutter"
+(defcustom git-gutter2-lighter " GitGutter2"
   "Minor mode lighter in mode-line"
   :type 'string)
 
@@ -709,6 +709,10 @@ gutter information of other windows."
           (delete-file now)
           (delete-file original))))))
 
+(defun git-gutter2-buffer-hunks ()
+  "Count unstaged hunks in current buffer."
+  (length git-gutter2--diffinfos))
+
 (defun git-gutter2-all-hunks ()
   "Cound unstaged hunks in all buffers"
   (let ((sum 0))
@@ -745,6 +749,15 @@ gutter information of other windows."
                     (when (called-interactively-p 'interactive)
                       (message "Added %d lines, Deleted %d lines" added deleted))
                     (cons added deleted))))
+
+(defun git-gutter2-update-all-windows ()
+  "Update git-gutter information for all visible buffers."
+  (interactive)
+  (dolist (win (window-list))
+    (let ((buf (window-buffer win)))
+      (with-current-buffer buf
+        (when git-gutter2-mode
+          (git-gutter2-update))))))
 
 (provide 'git-gutter2)
 
