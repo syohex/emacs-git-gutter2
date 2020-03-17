@@ -1,4 +1,4 @@
-# git-gutter2.el
+# git-gutter2.el ![](https://github.com/syohex/emacs-git-gutter2/workflows/CI/badge.svg)
 
 This is not [melpa version](https://github.com/emacsorphanage/git-gutter).
 
