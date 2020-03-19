@@ -115,10 +115,6 @@ gutter information of other windows."
   "Ask whether commit/revert or not"
   :type 'boolean)
 
-(defcustom git-gutter2-display-p t
-  "Display diff information or not."
-  :type 'boolean)
-
 (cl-defstruct git-gutter2-hunk
   type content start-line end-line)
 
@@ -382,11 +378,10 @@ gutter information of other windows."
     (widen)
     (git-gutter2--clear-gutter)
     (setq git-gutter2--diffinfos diffinfos)
-    (when git-gutter2-display-p
-      (when diffinfos
-        (git-gutter2--view-set-overlays diffinfos))
-      (when (or global-git-gutter2-mode diffinfos)
-        (git-gutter2--set-window-margin (git-gutter2--window-margin))))))
+    (when diffinfos
+      (git-gutter2--view-set-overlays diffinfos))
+    (when (or global-git-gutter2-mode diffinfos)
+      (git-gutter2--set-window-margin (git-gutter2--window-margin)))))
 
 (defun git-gutter2--search-near-diff-index (diffinfos is-reverse)
   (cl-loop with current-line = (line-number-at-pos)
