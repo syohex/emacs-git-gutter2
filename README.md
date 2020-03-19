@@ -1,6 +1,7 @@
 # git-gutter2.el ![](https://github.com/syohex/emacs-git-gutter2/workflows/CI/badge.svg)
 
 This is not [melpa version](https://github.com/emacsorphanage/git-gutter).
+This is my own git-gutter.el implementation. I'm tired from maintaining emacs package.
 
 ## Introduction
 
