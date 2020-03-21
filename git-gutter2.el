@@ -681,20 +681,13 @@ gutter information of other windows."
     (unless (equal sha1 git-gutter2--last-sha1)
       (setq git-gutter2--last-sha1 sha1))))
 
-(defun git-gutter2--git-root ()
-  (with-temp-buffer
-    (when (zerop (process-file "git" nil t nil "rev-parse" "--show-toplevel"))
-      (goto-char (point-min))
-      (file-name-as-directory
-       (buffer-substring-no-properties (point) (line-end-position))))))
-
 (defun git-gutter2--live-update ()
   (git-gutter2-awhen (git-gutter2--base-file)
     (when (and git-gutter2--enabled
                (buffer-modified-p)
                (git-gutter2--should-update-p))
       (let ((file (file-name-nondirectory it))
-            (root (file-truename (git-gutter2--git-root)))
+            (root (file-truename (locate-dominating-file default-directory ".git")))
             (now (make-temp-file "git-gutter-cur"))
             (original (make-temp-file "git-gutter-orig")))
         (if (git-gutter2--write-original-content original (file-relative-name it root))
