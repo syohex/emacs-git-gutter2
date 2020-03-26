@@ -92,7 +92,7 @@ gutter information of other windows."
   "Face of added")
 
 (defface git-gutter2-deleted
-  '((t (:foreground "red" :weight bold)))
+  '((t (:foreground "red" :weight bold :inherit default)))
   "Face of deleted")
 
 (defcustom git-gutter2-disabled-modes nil
