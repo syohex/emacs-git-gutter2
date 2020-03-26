@@ -23,7 +23,7 @@ which is a plugin of Sublime Text.
 
 ## Requirements
 
-* Emacs 26.1 or higher
+* Emacs 26.3 or higher
 * [Git](http://git-scm.com/)(1.7.0 or higher)
 
 
