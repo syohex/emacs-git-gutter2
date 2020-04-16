@@ -39,18 +39,14 @@ It is better to explicitly assign width to this variable, if you use full-width
 character for signs of changes"
   :type 'integer)
 
-(defcustom git-gutter2-diff-option ""
-  "Option of 'git diff'"
-  :type 'string)
-
 (defcustom git-gutter2-update-commands
-  '(ido-switch-buffer helm-buffers-list)
+  '(helm-buffers-list)
   "Each command of this list is executed, gutter information is updated."
   :type '(list (function :tag "Update command")
                (repeat :inline t (function :tag "Update command"))))
 
 (defcustom git-gutter2-update-windows-commands
-  '(kill-buffer ido-kill-buffer)
+  '(kill-buffer)
   "Each command of this list is executed, gutter information is updated and
 gutter information of other windows."
   :type '(list (function :tag "Update command")
@@ -123,6 +119,7 @@ gutter information of other windows."
 (defvar git-gutter2--in-repository nil)
 (defvar git-gutter2--update-timer nil)
 (defvar git-gutter2--last-sha1 nil)
+(defvar git-gutter2--cached nil)
 
 (defvar git-gutter2--popup-buffer "*git-gutter2-diff*")
 (defvar git-gutter2--ignore-commands
@@ -197,14 +194,8 @@ gutter information of other windows."
     (let ((curwin (get-buffer-window)))
       (set-window-margins curwin width (cdr (window-margins curwin))))))
 
-(defun git-gutter2--git-diff-arguments (file)
-  (let (args)
-    (unless (string= git-gutter2-diff-option "")
-      (setq args (nreverse (split-string git-gutter2-diff-option))))
-    (nreverse (cons file args))))
-
-(defun git-gutter2--start-diff-process1 (file proc-buf)
-  (let ((arg (git-gutter2--git-diff-arguments file)))
+(defun git-gutter2--start-diff-process1 (file proc-buf cached)
+  (let ((arg (if cached (list "--cached" file) (list file))))
     (apply #'start-file-process "git-gutter" proc-buf
            "git" "--no-pager" "-c" "diff.autorefreshindex=0"
            "diff" "--no-color" "--no-ext-diff" "--relative" "-U0"
@@ -212,8 +203,10 @@ gutter information of other windows."
 
 (defun git-gutter2--start-diff-process (curfile proc-buf)
   (git-gutter2--set-window-margin (git-gutter2--window-margin))
-  (let ((curbuf (current-buffer))
-        (process (git-gutter2--start-diff-process1 curfile proc-buf)))
+  (let* ((cached git-gutter2--cached)
+         (curbuf (current-buffer))
+         (process (git-gutter2--start-diff-process1 curfile proc-buf cached)))
+    (setq git-gutter2--cached nil)
     (set-process-query-on-exit-flag process nil)
     (set-process-sentinel
      process
@@ -221,6 +214,7 @@ gutter information of other windows."
        (when (eq (process-status proc) 'exit)
          (setq git-gutter2--enabled nil)
          (let ((diffinfos (git-gutter2--process-diff-output (process-buffer proc))))
+           (setq git-gutter2--cached nil)
            (when (buffer-live-p curbuf)
              (with-current-buffer curbuf
                (git-gutter2--update-diffinfo diffinfos)
@@ -666,6 +660,13 @@ gutter information of other windows."
       (when (and file (file-exists-p file) (not (get-buffer proc-buf)))
         (git-gutter2--start-diff-process (file-name-nondirectory file)
                                          (get-buffer-create proc-buf))))))
+
+;;;###autoload
+(defun git-gutter2-cached ()
+  "Show staged diff information in gutter"
+  (interactive)
+  (setq git-gutter2--cached t)
+  (git-gutter2-update))
 
 (defadvice vc-revert (after git-gutter2-vc-revert activate)
   (when git-gutter2-mode

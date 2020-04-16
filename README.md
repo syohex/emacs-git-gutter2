@@ -88,6 +88,10 @@ Revert current hunk
 Show/update changes from last commit or Update change information.
 Please execute this command if diff information is not be updated.
 
+#### `git-gutter2-cached`
+
+Show/update changes of staged diff(`git diff --cached`)
+
 #### `git-gutter2-update-all-windows`
 
 Update git-gutter2 information of buffers in all visible window.
@@ -211,16 +215,6 @@ to `non-nil`.
 
 Default is `nil`.
 
-
-### Pass option to 'git diff' command
-
-You can pass `git diff` option to set `git-gutter2-diff-option`.
-
-```lisp
-;; ignore all spaces
-(custom-set-variables
- '(git-gutter2-diff-option "-w"))
-```
 
 ### Don't ask whether commit/revert or not
 
