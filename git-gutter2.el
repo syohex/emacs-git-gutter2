@@ -44,13 +44,13 @@ character for signs of changes"
   :type 'string)
 
 (defcustom git-gutter2-update-commands
-  '(ido-switch-buffer helm-buffers-list)
+  '(helm-buffers-list)
   "Each command of this list is executed, gutter information is updated."
   :type '(list (function :tag "Update command")
                (repeat :inline t (function :tag "Update command"))))
 
 (defcustom git-gutter2-update-windows-commands
-  '(kill-buffer ido-kill-buffer)
+  '(kill-buffer)
   "Each command of this list is executed, gutter information is updated and
 gutter information of other windows."
   :type '(list (function :tag "Update command")
