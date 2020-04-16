@@ -148,14 +148,6 @@ bar
 
   (kill-buffer "test-git-gutter2.el"))
 
-(ert-deftest git-gutter2--git-diff-arguments ()
-  "Command line options of `git diff'"
-
-  (let ((git-gutter2-diff-option "-a -b -c")
-        (file "git-gutter2.el"))
-    (let ((got (git-gutter2--git-diff-arguments file)))
-      (should (equal got '("-a" "-b" "-c" "git-gutter2.el"))))))
-
 (ert-deftest git-gutter2--read-header ()
   "Read header of diff hunk"
 
