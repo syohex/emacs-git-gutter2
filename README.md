@@ -88,6 +88,10 @@ Revert current hunk
 Show/update changes from last commit or Update change information.
 Please execute this command if diff information is not be updated.
 
+#### `git-gutter2-cached`
+
+Show/update changes of staged diff(`git diff --cached`)
+
 #### `git-gutter2-update-all-windows`
 
 Update git-gutter2 information of buffers in all visible window.
