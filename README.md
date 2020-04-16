@@ -212,16 +212,6 @@ to `non-nil`.
 Default is `nil`.
 
 
-### Pass option to 'git diff' command
-
-You can pass `git diff` option to set `git-gutter2-diff-option`.
-
-```lisp
-;; ignore all spaces
-(custom-set-variables
- '(git-gutter2-diff-option "-w"))
-```
-
 ### Don't ask whether commit/revert or not
 
 `git-gutter2.el` always asks you whether commit/revert or not. If you don't want,
