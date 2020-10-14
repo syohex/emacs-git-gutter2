@@ -559,9 +559,11 @@ gutter information of other windows."
   (let ((content (git-gutter2-hunk-content diff-info))
         (type (git-gutter2-hunk-type diff-info))
         (header (git-gutter2--extract-hunk-header))
-        (patch (make-temp-name "git-gutter")))
+        (patch (make-temp-name "git-gutter"))
+        (coding buffer-file-coding-system))
     (when header
       (with-temp-file patch
+        (set-buffer-file-coding-system coding)
         (insert header)
         (git-gutter2--insert-staging-hunk content type))
       (let ((dir-option (git-gutter2--apply-directory-option))
@@ -594,16 +596,18 @@ gutter information of other windows."
       (push-mark end nil t))))
 
 (defun git-gutter2--update-popuped-buffer (diffinfo)
-  (with-current-buffer (get-buffer-create git-gutter2--popup-buffer)
-    (view-mode -1)
-    (setq buffer-read-only nil)
-    (erase-buffer)
-    (insert (git-gutter2-hunk-content diffinfo))
-    (insert "\n")
-    (goto-char (point-min))
-    (diff-mode)
-    (view-mode +1)
-    (current-buffer)))
+  (let ((coding buffer-file-coding-system))
+    (with-current-buffer (get-buffer-create git-gutter2--popup-buffer)
+      (set-buffer-file-coding-system coding)
+      (view-mode -1)
+      (setq buffer-read-only nil)
+      (erase-buffer)
+      (insert (git-gutter2-hunk-content diffinfo))
+      (insert "\n")
+      (goto-char (point-min))
+      (diff-mode)
+      (view-mode +1)
+      (current-buffer))))
 
 (defun git-gutter2-popup-hunk (&optional diffinfo)
   "Popup current diff hunk."
@@ -697,8 +701,10 @@ gutter information of other windows."
   (setq git-gutter2--update-timer nil))
 
 (defsubst git-gutter2--write-current-content (tmpfile)
-  (let ((content (buffer-substring-no-properties (point-min) (point-max))))
+  (let ((content (buffer-substring-no-properties (point-min) (point-max)))
+        (coding buffer-file-coding-system))
     (with-temp-file tmpfile
+      (set-buffer-file-coding-system coding)
       (insert content))))
 
 (defsubst git-gutter2--original-file-content (file)
@@ -708,9 +714,11 @@ gutter information of other windows."
 
 (defun git-gutter2--write-original-content (tmpfile filename)
   (git-gutter2-awhen (git-gutter2--original-file-content filename)
-    (with-temp-file tmpfile
-      (insert it)
-      t)))
+    (let ((coding buffer-file-coding-system))
+      (with-temp-file tmpfile
+        (set-buffer-file-coding-system coding)
+        (insert it)
+        t))))
 
 (defsubst git-gutter2--start-raw-diff-process (proc-buf original now)
   (start-file-process "git-gutter2-update-timer" proc-buf
