@@ -118,7 +118,7 @@ gutter information of other windows."
 (defvar git-gutter2--real-this-command nil)
 (defvar git-gutter2--in-repository nil)
 (defvar git-gutter2--update-timer nil)
-(defvar git-gutter2--last-sha1 nil)
+(defvar git-gutter2--last-modified-tick 0)
 (defvar git-gutter2--cached nil)
 
 (defvar git-gutter2--popup-buffer "*git-gutter2-diff*")
@@ -747,15 +747,13 @@ gutter information of other windows."
              (delete-file now))))))))
 
 (defun git-gutter2--should-update-p ()
-  (let ((sha1 (secure-hash 'sha1 (current-buffer))))
-    (unless (equal sha1 git-gutter2--last-sha1)
-      (setq git-gutter2--last-sha1 sha1))))
+  (let ((tick (buffer-modified-tick)))
+    (unless (= tick git-gutter2--last-modified-tick)
+      (setq-local git-gutter2--last-modified-tick tick))))
 
 (defun git-gutter2--live-update ()
   (git-gutter2-awhen (git-gutter2--base-file)
-    (when (and git-gutter2--enabled
-               (buffer-modified-p)
-               (git-gutter2--should-update-p))
+    (when (and git-gutter2--enabled (git-gutter2--should-update-p))
       (let ((file (file-name-nondirectory it))
             (root (file-truename (locate-dominating-file default-directory ".git")))
             (now (make-temp-file "git-gutter-cur"))
