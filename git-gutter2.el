@@ -577,7 +577,7 @@ gutter information of other windows."
         (delete-file patch)))))
 
 (defun git-gutter2-stage-hunk ()
-  "Stage this hunk like 'git add -p'."
+  "Stage this hunk like \\='git add -p\\='."
   (interactive)
   (git-gutter2--query-action "Stage" #'git-gutter2--do-stage-hunk #'git-gutter2-update))
 
