@@ -656,7 +656,7 @@ gutter information of other windows."
 (defun git-gutter2-update ()
   "Show diff information in gutter"
   (interactive)
-  (when (or git-gutter2--in-repository (git-gutter2--in-repository-p))
+  (when (and git-gutter2-mode (or git-gutter2--in-repository (git-gutter2--in-repository-p)))
     (let* ((file (git-gutter2--base-file))
            (proc-buf (git-gutter2--diff-process-buffer file)))
       (when (and (called-interactively-p 'interactive) (get-buffer proc-buf))
@@ -672,19 +672,15 @@ gutter information of other windows."
   (setq git-gutter2--cached t)
   (git-gutter2-update))
 
-(defadvice vc-revert (after git-gutter2-vc-revert activate)
-  (when git-gutter2-mode
-    (run-with-idle-timer 0.1 nil 'git-gutter)))
+(defun git-gutter2--after-vc-revert (&rest _args)
+  (run-with-idle-timer 0.1 nil #'git-gutter2-update))
 
-;; `quit-window' and `switch-to-buffer' are called from other
-;; commands. So we should use `defadvice' instead of `post-command-hook'.
-(defadvice quit-window (after git-gutter2-quit-window activate)
-  (when git-gutter2-mode
-    (git-gutter2-update)))
+(defun git-gutter2--after-update (&rest _args)
+  (git-gutter2-update))
 
-(defadvice switch-to-buffer (after git-gutter2-switch-to-buffer activate)
-  (when git-gutter2-mode
-    (git-gutter2-update)))
+(advice-add 'vc-revert :after #'git-gutter2--after-vc-revert)
+(advice-add 'quit-window :after #'git-gutter2--after-update)
+(advice-add 'switch-to-buffer :after #'git-gutter2--after-update)
 
 (defun git-gutter2-start-update-timer ()
   (interactive)
