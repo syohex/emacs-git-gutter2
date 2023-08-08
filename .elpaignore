@@ -2,6 +2,7 @@
 .cask
 .git
 .github
+.gitignore
 image
 test
 Makefile
