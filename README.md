@@ -165,25 +165,6 @@ Default is " GitGutter"
  '(git-gutter2-lighter " GG"))
 ```
 
-
-### Using full width characters
-
-![Screenshot of using full-width character as diff sign](image/git-gutter2-fullwidth.png)
-
-Emacs has `char-width` function which returns character width.
-`git-gutter2.el` uses it for calculating character length of the signs.
-But `char-width` does not work for some full-width characters.
-So you should explicitly specify window width, if you use full-width
-character.
-
-```lisp
-(custom-set-variables
- '(git-gutter2-window-width 2)
- '(git-gutter2-modified-sign "☁")
- '(git-gutter2-added-sign "☀")
- '(git-gutter2-deleted-sign "☂"))
-```
-
 ### Updates hooks
 
 diff information is updated at hooks in `git-gutter2-update-hooks`.
@@ -214,27 +195,6 @@ to `non-nil`.
 
 Default is `nil`.
 
-
-### Don't ask whether commit/revert or not
-
-`git-gutter2.el` always asks you whether commit/revert or not. If you don't want,
-please set `git-gutter2-ask-p` to `nil`.
-
-```lisp
-;; Don't ask me!!
-(custom-set-variables
- '(git-gutter2-ask-p nil))
-```
-
-### Log/Message Level
-
-```lisp
-;; Don't need log/message.
-(custom-set-variables
- '(git-gutter2-verbosity 0))
-```
-
-Default value is 4(`0` is lowest, `4` is highest).
 
 ### Run hook
 

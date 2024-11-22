@@ -33,12 +33,6 @@
   :prefix "git-gutter2-"
   :group 'vc)
 
-(defcustom git-gutter2-window-width nil
-  "Character width of gutter window. Emacs mistakes width of some characters.
-It is better to explicitly assign width to this variable, if you use full-width
-character for signs of changes"
-  :type 'integer)
-
 (defcustom git-gutter2-update-commands
   '(helm-buffers-list)
   "Each command of this list is executed, gutter information is updated."
@@ -70,14 +64,6 @@ gutter information of other windows."
   "Deleted sign"
   :type 'string)
 
-(defcustom git-gutter2-lighter " GitGutter2"
-  "Minor mode lighter in mode-line"
-  :type 'string)
-
-(defcustom git-gutter2-verbosity 0
-  "Log/message level. 4 means all, 0 nothing."
-  :type 'integer)
-
 (defface git-gutter2-modified
   '((t (:foreground "magenta" :weight bold :inherit default)))
   "Face of modified")
@@ -105,10 +91,6 @@ gutter information of other windows."
 (defcustom git-gutter2-update-interval 0
   "Time interval in seconds for updating diff information."
   :type 'integer)
-
-(defcustom git-gutter2-ask-p t
-  "Ask whether commit/revert or not"
-  :type 'boolean)
 
 (cl-defstruct git-gutter2-hunk
   type content start-line end-line)
@@ -186,9 +168,6 @@ gutter information of other windows."
                  (make-git-gutter2-hunk
                   :type type :content content :start-line start :end-line end))))))
 
-(defsubst git-gutter2--window-margin ()
-  (or git-gutter2-window-width (git-gutter2--longest-sign-width)))
-
 (defun git-gutter2--set-window-margin (width)
   (when (>= width 0)
     (let ((curwin (get-buffer-window)))
@@ -250,7 +229,8 @@ gutter information of other windows."
   (cl-loop for s across sign
            sum (char-width s)))
 
-(defun git-gutter2--longest-sign-width ()
+(defun git-gutter2--window-margin ()
+  ;; choose the longest sign as window margin
   (let ((signs (list git-gutter2-modified-sign
                      git-gutter2-added-sign
                      git-gutter2-deleted-sign)))
@@ -297,7 +277,7 @@ gutter information of other windows."
   "Git-Gutter mode"
   :init-value nil
   :global     nil
-  :lighter    git-gutter2-lighter
+  :lighter    " GitGutter2"
   (if git-gutter2-mode
       (if (and (git-gutter2--check-file-and-directory)
                (git-gutter2--in-repository-p))
@@ -313,8 +293,6 @@ gutter information of other windows."
             (when (and (not git-gutter2--update-timer) (> git-gutter2-update-interval 0))
               (setq git-gutter2--update-timer
                     (run-with-idle-timer git-gutter2-update-interval t #'git-gutter2--live-update))))
-        (when (> git-gutter2-verbosity 2)
-          (message "Here is not git work tree"))
         (git-gutter2-mode -1))
     (remove-hook 'kill-buffer-hook #'git-gutter2--kill-buffer-hook t)
     (remove-hook 'pre-command-hook #'git-gutter2--pre-command-hook)
@@ -440,14 +418,11 @@ gutter information of other windows."
   (git-gutter2-awhen (git-gutter2--search-here-diffinfo git-gutter2--diffinfos)
     (let ((diff-info (git-gutter2--adjust-diff-info it)))
       (save-window-excursion
-        (when git-gutter2-ask-p
-          (git-gutter2-popup-hunk diff-info))
-        (when (or (not git-gutter2-ask-p) (yes-or-no-p (format "%s current hunk ? " action)))
+        (git-gutter2-popup-hunk diff-info)
+        (when (yes-or-no-p (format "%s current hunk ? " action))
           (funcall action-fn diff-info)
           (funcall update-fn))
-        (if git-gutter2-ask-p
-            (delete-window (git-gutter2--popup-buffer-window))
-          (message "%s current hunk." action))))))
+        (delete-window (git-gutter2--popup-buffer-window))))))
 
 (defun git-gutter2-revert-hunk ()
   "Revert current hunk."
@@ -619,9 +594,7 @@ gutter information of other windows."
 (defun git-gutter2-next-hunk (arg)
   "Move to next diff hunk"
   (interactive "p")
-  (if (not git-gutter2--diffinfos)
-      (when (> git-gutter2-verbosity 3)
-        (message "There are no changes!!"))
+  (when git-gutter2--diffinfos
     (save-restriction
       (widen)
       (let* ((is-reverse (< arg 0))
@@ -635,8 +608,6 @@ gutter information of other windows."
              (diffinfo (nth real-index diffinfos)))
         (goto-char (point-min))
         (forward-line (1- (git-gutter2-hunk-start-line diffinfo)))
-        (when (> git-gutter2-verbosity 0)
-          (message "Move to %d/%d hunk" (1+ real-index) len))
         (when (buffer-live-p (get-buffer git-gutter2--popup-buffer))
           (git-gutter2--update-popuped-buffer diffinfo))))))
 
