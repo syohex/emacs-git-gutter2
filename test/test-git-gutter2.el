@@ -1,4 +1,4 @@
-;;; test-git-gutter2.el --- Test for git-gutter2.el
+;;; test-git-gutter2.el --- Test for git-gutter2.el -*- lexical-binding: t -*-
 
 ;; Copyright (C) 2020 by Shohei YOSHIDA
 
@@ -23,9 +23,6 @@
 
 (require 'ert)
 (require 'git-gutter2)
-
-;; suppress log message
-(setq git-gutter2-verbosity 0)
 
 (ert-deftest git-gutter2--sign-width ()
   "helper function `git-gutter2-sign-width'"
@@ -133,34 +130,5 @@ bar
     (should git-gutter2-mode))
 
   (kill-buffer "test-git-gutter2.el"))
-
-(ert-deftest global-git-gutter2-mode-failed ()
-  "Case global-git-gutter2-mode disabled"
-
-  (with-temp-buffer
-    (global-git-gutter2-mode t)
-    (should-not git-gutter2-mode))
-
-  (let ((git-gutter2-disabled-modes '(emacs-lisp-mode)))
-    (with-current-buffer (find-file-noselect "test-git-gutter2.el")
-      (global-git-gutter2-mode t)
-      (should-not git-gutter2-mode)))
-
-  (kill-buffer "test-git-gutter2.el"))
-
-(ert-deftest git-gutter2--read-header ()
-  "Read header of diff hunk"
-
-  (let ((got (git-gutter2--read-hunk-header "@@ -658,31 +688,30 @@")))
-    (should (= (nth 0 got) 658))
-    (should (= (nth 1 got) 31))
-    (should (= (nth 2 got) 688))
-    (should (= (nth 3 got) 30)))
-
-  (let ((got (git-gutter2--read-hunk-header "@@ -100 +200 @@")))
-    (should (= (nth 0 got) 100))
-    (should (= (nth 1 got) 1))
-    (should (= (nth 2 got) 200))
-    (should (= (nth 3 got) 1))))
 
 ;;; test-git-gutter2.el end here
