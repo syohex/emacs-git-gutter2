@@ -52,45 +52,29 @@ gutter information of other windows."
   :type '(list (hook :tag "HookPoint")
                (repeat :inline t (hook :tag "HookPoint"))))
 
-(defcustom git-gutter2-modified-sign "="
-  "Modified sign"
-  :type 'string)
-
 (defcustom git-gutter2-added-sign "+"
   "Added sign"
   :type 'string)
 
-(defcustom git-gutter2-deleted-sign "-"
+(defcustom git-gutter2-deleted-sign " "
   "Deleted sign"
   :type 'string)
 
-(defface git-gutter2-modified
-  '((t (:foreground "magenta" :weight bold :inherit default)))
-  "Face of modified")
+(defcustom git-gutter2-modified-sign " "
+  "Modified sign"
+  :type 'string)
 
 (defface git-gutter2-added
   '((t (:foreground "green" :weight bold :inherit default)))
-  "Face of added")
+  "Face of added sign")
 
 (defface git-gutter2-deleted
-  '((t (:foreground "red" :weight bold :inherit default)))
-  "Face of deleted")
+  '((t (:foreground unspecified :background "brightred")))
+  "Face of deleted sign")
 
-(defcustom git-gutter2-disabled-modes nil
-  "A list of modes which `global-git-gutter2-mode' should be disabled."
-  :type '(repeat symbol))
-
-(defcustom git-gutter2-mode-on-hook nil
-  "Hook run when git-gutter mode enable"
-  :type 'hook)
-
-(defcustom git-gutter2-mode-off-hook nil
-  "Hook run when git-gutter mode disable"
-  :type 'hook)
-
-(defcustom git-gutter2-update-interval 0
-  "Time interval in seconds for updating diff information."
-  :type 'integer)
+(defface git-gutter2-modified
+  '((t (:foreground unspecified :background "brightmagenta")))
+  "Face of modified")
 
 (cl-defstruct git-gutter2-hunk
   type content start-line end-line)
@@ -99,9 +83,6 @@ gutter information of other windows."
 (defvar git-gutter2--diffinfos nil)
 (defvar git-gutter2--real-this-command nil)
 (defvar git-gutter2--in-repository nil)
-(defvar git-gutter2--update-timer nil)
-(defvar git-gutter2--last-modified-tick 0)
-(defvar git-gutter2--cached nil)
 
 (defvar git-gutter2--popup-buffer "*git-gutter2-diff*")
 (defvar git-gutter2--ignore-commands
@@ -173,19 +154,17 @@ gutter information of other windows."
     (let ((curwin (get-buffer-window)))
       (set-window-margins curwin width (cdr (window-margins curwin))))))
 
-(defun git-gutter2--start-diff-process1 (file proc-buf cached)
-  (let ((arg (if cached (list "--cached" file) (list file))))
+(defun git-gutter2--start-diff-process1 (file proc-buf)
+  (let ((args (list file)))
     (apply #'start-file-process "git-gutter" proc-buf
            "git" "--no-pager" "-c" "diff.autorefreshindex=0"
            "diff" "--no-color" "--no-ext-diff" "--relative" "-U0"
-           arg)))
+           args)))
 
 (defun git-gutter2--start-diff-process (curfile proc-buf)
   (git-gutter2--set-window-margin (git-gutter2--window-margin))
-  (let* ((cached git-gutter2--cached)
-         (curbuf (current-buffer))
-         (process (git-gutter2--start-diff-process1 curfile proc-buf cached)))
-    (setq git-gutter2--cached nil)
+  (let ((curbuf (current-buffer))
+        (process (git-gutter2--start-diff-process1 curfile proc-buf)))
     (set-process-query-on-exit-flag process nil)
     (set-process-sentinel
      process
@@ -193,7 +172,6 @@ gutter information of other windows."
        (when (eq (process-status proc) 'exit)
          (setq git-gutter2--enabled nil)
          (let ((diffinfos (git-gutter2--process-diff-output (process-buffer proc))))
-           (setq git-gutter2--cached nil)
            (when (buffer-live-p curbuf)
              (with-current-buffer curbuf
                (git-gutter2--update-diffinfo diffinfos)
@@ -289,10 +267,7 @@ gutter information of other windows."
             (add-hook 'post-command-hook #'git-gutter2--post-command-hook nil t)
             (dolist (hook git-gutter2-update-hooks)
               (add-hook hook #'git-gutter2-update nil t))
-            (git-gutter2-update)
-            (when (and (not git-gutter2--update-timer) (> git-gutter2-update-interval 0))
-              (setq git-gutter2--update-timer
-                    (run-with-idle-timer git-gutter2-update-interval t #'git-gutter2--live-update))))
+            (git-gutter2-update))
         (git-gutter2-mode -1))
     (remove-hook 'kill-buffer-hook #'git-gutter2--kill-buffer-hook t)
     (remove-hook 'pre-command-hook #'git-gutter2--pre-command-hook)
@@ -302,8 +277,7 @@ gutter information of other windows."
     (git-gutter2--clear-gutter)))
 
 (defun git-gutter2--turn-on ()
-  (when (and (buffer-file-name)
-             (not (memq major-mode git-gutter2-disabled-modes)))
+  (when (buffer-file-name)
     (git-gutter2-mode +1)))
 
 ;;;###autoload
@@ -429,46 +403,6 @@ gutter information of other windows."
   (interactive)
   (git-gutter2--query-action "Revert" #'git-gutter2--do-revert-hunk #'save-buffer))
 
-(defun git-gutter2--extract-hunk-header ()
-  (git-gutter2-awhen (git-gutter2--base-file)
-    (with-temp-buffer
-      (when (zerop (git-gutter2--execute-command
-                    "git" t "--no-pager" "-c" "diff.autorefreshindex=0"
-                    "diff" "--no-color" "--no-ext-diff"
-                    "--relative" (file-name-nondirectory it)))
-        (goto-char (point-min))
-        (forward-line 4)
-        (buffer-substring-no-properties (point-min) (point))))))
-
-(defun git-gutter2--read-hunk-header (header)
-  (let ((header-regexp "^@@ -\\([0-9]+\\),?\\([0-9]*\\) \\+\\([0-9]+\\),?\\([0-9]*\\) @@"))
-    (when (string-match header-regexp header)
-      (list (string-to-number (match-string 1 header))
-            (git-gutter2--changes-to-number (match-string 2 header))
-            (string-to-number (match-string 3 header))
-            (git-gutter2--changes-to-number (match-string 4 header))))))
-
-(defun git-gutter2--convert-hunk-header (type)
-  (let ((header (buffer-substring-no-properties (point) (line-end-position))))
-    (delete-region (point) (line-end-position))
-    (cl-destructuring-bind
-        (orig-line orig-changes new-line new-changes) (git-gutter2--read-hunk-header header)
-      (cl-case type
-        (added (setq new-line (1+ orig-line)))
-        (t (setq new-line orig-line)))
-      (let ((new-header (format "@@ -%d,%d +%d,%d @@"
-                                orig-line orig-changes new-line new-changes)))
-        (insert new-header)))))
-
-(defun git-gutter2--insert-staging-hunk (hunk type)
-  (save-excursion
-    (insert hunk "\n"))
-  (git-gutter2--convert-hunk-header type))
-
-(defun git-gutter2--apply-directory-option ()
-  (let ((root (locate-dominating-file default-directory ".git")))
-    (file-name-directory (file-relative-name (git-gutter2--base-file) root))))
-
 (defun git-gutter2--adjust-added-hunk (diff-info start-line end-line)
   (unless (= (git-gutter2-hunk-start-line diff-info) start-line)
     (error "Invalid region. Staging region for added hunk must start from first line of this hunk"))
@@ -530,46 +464,6 @@ gutter information of other windows."
           (setf (git-gutter2-hunk-content adjusted-hunk) new-hunk)
           adjusted-hunk)))))
 
-(defun git-gutter2--do-stage-hunk (diff-info)
-  (let ((content (git-gutter2-hunk-content diff-info))
-        (type (git-gutter2-hunk-type diff-info))
-        (header (git-gutter2--extract-hunk-header))
-        (patch (make-temp-name "git-gutter"))
-        (coding buffer-file-coding-system))
-    (when header
-      (with-temp-file patch
-        (set-buffer-file-coding-system coding)
-        (insert header)
-        (git-gutter2--insert-staging-hunk content type))
-      (let ((dir-option (git-gutter2--apply-directory-option))
-            (options (list "--cached" patch)))
-        (when dir-option
-          (setq options (cons "--directory" (cons dir-option options))))
-        (unless (zerop (apply #'git-gutter2--execute-command
-                              "git" nil "apply" "--unidiff-zero"
-                              options))
-          (message "Failed: stating this hunk"))
-        (delete-file patch)))))
-
-(defun git-gutter2-stage-hunk ()
-  "Stage this hunk like \\='git add -p\\='."
-  (interactive)
-  (git-gutter2--query-action "Stage" #'git-gutter2--do-stage-hunk #'git-gutter2-update))
-
-(defsubst git-gutter2--line-point (line)
-  (save-excursion
-    (goto-char (point-min))
-    (forward-line (1- line))
-    (point)))
-
-(defun git-gutter2-mark-hunk ()
-  (interactive)
-  (git-gutter2-awhen (git-gutter2--search-here-diffinfo git-gutter2--diffinfos)
-    (let ((start (git-gutter2--line-point (git-gutter2-hunk-start-line it)))
-          (end (git-gutter2--line-point (1+ (git-gutter2-hunk-end-line it)))))
-      (goto-char start)
-      (push-mark end nil t))))
-
 (defun git-gutter2--update-popuped-buffer (diffinfo)
   (let ((coding buffer-file-coding-system))
     (with-current-buffer (get-buffer-create git-gutter2--popup-buffer)
@@ -616,13 +510,6 @@ gutter information of other windows."
   (interactive "p")
   (git-gutter2-next-hunk (- arg)))
 
-(defun git-gutter2-end-of-hunk ()
-  "Move to end of current diff hunk"
-  (interactive)
-  (git-gutter2-awhen (git-gutter2--search-here-diffinfo git-gutter2--diffinfos)
-    (let ((lines (- (git-gutter2-hunk-end-line it) (line-number-at-pos))))
-      (forward-line lines))))
-
 ;;;###autoload
 (defun git-gutter2-update ()
   "Show diff information in gutter"
@@ -636,13 +523,6 @@ gutter information of other windows."
         (git-gutter2--start-diff-process (file-name-nondirectory file)
                                          (get-buffer-create proc-buf))))))
 
-;;;###autoload
-(defun git-gutter2-cached ()
-  "Show staged diff information in gutter"
-  (interactive)
-  (setq git-gutter2--cached t)
-  (git-gutter2-update))
-
 (defun git-gutter2--after-vc-revert (&rest _args)
   (run-with-idle-timer 0.1 nil #'git-gutter2-update))
 
@@ -653,134 +533,9 @@ gutter information of other windows."
 (advice-add 'quit-window :after #'git-gutter2--after-update)
 (advice-add 'switch-to-buffer :after #'git-gutter2--after-update)
 
-(defun git-gutter2-start-update-timer ()
-  (interactive)
-  (when git-gutter2--update-timer
-    (error "Update timer is already running."))
-  (setq git-gutter2--update-timer
-        (run-with-idle-timer git-gutter2-update-interval t #'git-gutter2--live-update)))
-
-(defun git-gutter2-cancel-update-timer ()
-  (interactive)
-  (unless git-gutter2--update-timer
-    (error "Timer is no running."))
-  (cancel-timer git-gutter2--update-timer)
-  (setq git-gutter2--update-timer nil))
-
-(defsubst git-gutter2--write-current-content (tmpfile)
-  (let ((content (buffer-substring-no-properties (point-min) (point-max)))
-        (coding buffer-file-coding-system))
-    (with-temp-file tmpfile
-      (set-buffer-file-coding-system coding)
-      (insert content))))
-
-(defsubst git-gutter2--original-file-content (file)
-  (with-temp-buffer
-    (when (zerop (process-file "git" nil t nil "show" (concat ":" file)))
-      (buffer-substring-no-properties (point-min) (point-max)))))
-
-(defun git-gutter2--write-original-content (tmpfile filename)
-  (git-gutter2-awhen (git-gutter2--original-file-content filename)
-    (let ((coding buffer-file-coding-system))
-      (with-temp-file tmpfile
-        (set-buffer-file-coding-system coding)
-        (insert it)
-        t))))
-
-(defsubst git-gutter2--start-raw-diff-process (proc-buf original now)
-  (start-file-process "git-gutter2-update-timer" proc-buf
-                      "diff" "-U0" original now))
-
-(defun git-gutter2--start-live-update (file original now)
-  (let ((proc-bufname (git-gutter2--diff-process-buffer file)))
-    (when (get-buffer proc-bufname)
-      (kill-buffer proc-bufname))
-    (let* ((curbuf (current-buffer))
-           (proc-buf (get-buffer-create proc-bufname))
-           (process (git-gutter2--start-raw-diff-process proc-buf original now)))
-      (set-process-query-on-exit-flag process nil)
-      (set-process-sentinel
-       process
-       (lambda (proc _event)
-         (when (eq (process-status proc) 'exit)
-           (setq git-gutter2--enabled nil)
-           (let ((diffinfos (git-gutter2--process-diff-output (process-buffer proc))))
-             (when (buffer-live-p curbuf)
-               (with-current-buffer curbuf
-                 (git-gutter2--update-diffinfo diffinfos)
-                 (setq git-gutter2--enabled t)))
-             (kill-buffer proc-buf)
-             (delete-file original)
-             (delete-file now))))))))
-
-(defun git-gutter2--should-update-p ()
-  (let ((tick (buffer-modified-tick)))
-    (unless (= tick git-gutter2--last-modified-tick)
-      (setq-local git-gutter2--last-modified-tick tick))))
-
-(defun git-gutter2--live-update ()
-  (git-gutter2-awhen (git-gutter2--base-file)
-    (when (and git-gutter2--enabled (git-gutter2--should-update-p))
-      (let ((file (file-name-nondirectory it))
-            (root (file-truename (locate-dominating-file default-directory ".git")))
-            (now (make-temp-file "git-gutter-cur"))
-            (original (make-temp-file "git-gutter-orig")))
-        (if (git-gutter2--write-original-content original (file-relative-name it root))
-            (progn
-              (git-gutter2--write-current-content now)
-              (git-gutter2--start-live-update file original now))
-          (delete-file now)
-          (delete-file original))))))
-
 (defun git-gutter2-buffer-hunks ()
   "Count unstaged hunks in current buffer."
   (length git-gutter2--diffinfos))
-
-(defun git-gutter2-all-hunks ()
-  "Cound unstaged hunks in all buffers"
-  (let ((sum 0))
-    (dolist (buf (buffer-list))
-      (with-current-buffer buf
-        (when git-gutter2-mode
-          (cl-incf sum (length git-gutter2--diffinfos)))))
-    sum))
-
-(defun git-gutter2--stat-hunk (hunk)
-  (cl-case (git-gutter2-hunk-type hunk)
-    (modified (with-temp-buffer
-                (insert (git-gutter2-hunk-content hunk))
-                (goto-char (point-min))
-                (let ((added 0)
-                      (deleted 0))
-                  (while (not (eobp))
-                    (cond ((looking-at-p "\\+") (cl-incf added))
-                          ((looking-at-p "\\-") (cl-incf deleted)))
-                    (forward-line 1))
-                  (cons added deleted))))
-    (added (cons (- (git-gutter2-hunk-end-line hunk) (git-gutter2-hunk-start-line hunk)) 0))
-    (deleted (cons 0 (- (git-gutter2-hunk-end-line hunk) (git-gutter2-hunk-start-line hunk))))))
-
-(defun git-gutter2-statistic ()
-  "Return statistic unstaged hunks in current buffer."
-  (interactive)
-  (cl-loop for hunk in git-gutter2--diffinfos
-           for (add . del) = (git-gutter2--stat-hunk hunk)
-           sum add into added
-           sum del into deleted
-           finally
-           return (progn
-                    (when (called-interactively-p 'interactive)
-                      (message "Added %d lines, Deleted %d lines" added deleted))
-                    (cons added deleted))))
-
-(defun git-gutter2-update-all-windows ()
-  "Update git-gutter information for all visible buffers."
-  (interactive)
-  (dolist (win (window-list))
-    (let ((buf (window-buffer win)))
-      (with-current-buffer buf
-        (when git-gutter2-mode
-          (git-gutter2-update))))))
 
 (provide 'git-gutter2)
 
