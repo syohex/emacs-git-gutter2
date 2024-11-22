@@ -30,7 +30,7 @@ which is a plugin of Sublime Text.
 `git-gutter2.el` provides global minor-mode(`global-git-gutter2-mode`) and minor-mode(`git-gutter2-mode`).
 
 If you want to use `git-gutter2` for files in git repository.
-You add following s-exp in your configuration file(`~/.emacs.d/init.el` or `~/.emacs`).
+You add following s-exp in your configuration file(`~/.emacs.d/init.el`).
 
 ```lisp
 (global-git-gutter2-mode +1)
