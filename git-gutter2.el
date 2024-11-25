@@ -274,7 +274,7 @@ gutter information of other windows."
     (remove-hook 'post-command-hook #'git-gutter2--post-command-hook t)
     (dolist (hook git-gutter2-update-hooks)
       (remove-hook hook #'git-gutter2-update t))
-    (git-gutter2--clear-gutter)))
+    (git-gutter2-clear-gutter)))
 
 (defun git-gutter2--turn-on ()
   (when (buffer-file-name)
@@ -309,7 +309,7 @@ gutter information of other windows."
                   (forward-line 1)))
                (setq curline (1+ end-line))))))
 
-(defun git-gutter2--clear-gutter ()
+(defun git-gutter2-clear-gutter ()
   (save-restriction
     (widen)
     (unless global-git-gutter2-mode
@@ -321,7 +321,7 @@ gutter information of other windows."
 (defun git-gutter2--update-diffinfo (diffinfos)
   (save-restriction
     (widen)
-    (git-gutter2--clear-gutter)
+    (git-gutter2-clear-gutter)
     (setq git-gutter2--diffinfos diffinfos)
     (when diffinfos
       (git-gutter2--view-set-overlays diffinfos))
