@@ -92,12 +92,6 @@ gutter information of other windows."
     helm-maybe-exit-minibuffer
     helm-confirm-and-exit-minibuffer))
 
-(defmacro git-gutter2-awhen (test &rest body)
-  "Anaphoric when."
-  (declare (indent 1))
-  `(let ((it ,test))
-     (when it ,@body)))
-
 (defsubst git-gutter2--execute-command (cmd output &rest args)
   (apply #'process-file cmd nil output nil args))
 
@@ -246,9 +240,8 @@ gutter information of other windows."
   (concat " *git-gutter2-" curfile "-*"))
 
 (defun git-gutter2--kill-buffer-hook ()
-  (let ((buf (git-gutter2--diff-process-buffer (git-gutter2--base-file))))
-    (git-gutter2-awhen (get-buffer buf)
-      (kill-buffer it))))
+  (when-let* ((proc-buf (get-buffer (git-gutter2--diff-process-buffer (git-gutter2--base-file)))))
+    (kill-buffer proc-buf)))
 
 ;;;###autoload
 (define-minor-mode git-gutter2-mode
@@ -310,6 +303,7 @@ gutter information of other windows."
                (setq curline (1+ end-line))))))
 
 (defun git-gutter2-clear-gutter ()
+  (interactive)
   (save-restriction
     (widen)
     (unless global-git-gutter2-mode
@@ -389,8 +383,8 @@ gutter information of other windows."
   (get-buffer-window (get-buffer git-gutter2--popup-buffer)))
 
 (defun git-gutter2--query-action (action action-fn update-fn)
-  (git-gutter2-awhen (git-gutter2--search-here-diffinfo git-gutter2--diffinfos)
-    (let ((diff-info (git-gutter2--adjust-diff-info it)))
+  (when-let* ((here-diff-info (git-gutter2--search-here-diffinfo git-gutter2--diffinfos)))
+    (let ((diff-info (git-gutter2--adjust-diff-info here-diff-info)))
       (save-window-excursion
         (git-gutter2-popup-hunk diff-info)
         (when (yes-or-no-p (format "%s current hunk ? " action))
@@ -478,12 +472,12 @@ gutter information of other windows."
       (view-mode +1)
       (current-buffer))))
 
-(defun git-gutter2-popup-hunk (&optional diffinfo)
+(defun git-gutter2-popup-hunk (&optional diff-info)
   "Popup current diff hunk."
   (interactive)
-  (git-gutter2-awhen (or diffinfo (git-gutter2--search-here-diffinfo git-gutter2--diffinfos))
+  (when-let* ((diff-info (or diff-info (git-gutter2--search-here-diffinfo git-gutter2--diffinfos))))
     (save-selected-window
-      (pop-to-buffer (git-gutter2--update-popuped-buffer it)))))
+      (pop-to-buffer (git-gutter2--update-popuped-buffer diff-info)))))
 
 (defun git-gutter2-next-hunk (arg)
   "Move to next diff hunk"
